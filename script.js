@@ -23,6 +23,8 @@ SOFTWARE.
 */
 
 let workers = [];
+let bigSum = 0;
+let callbacks = [];
 function setRunningWorkers(numWorkers) {
     while (workers.length > numWorkers) {
         workers.pop().terminate();
@@ -30,17 +32,27 @@ function setRunningWorkers(numWorkers) {
     while (workers.length < numWorkers) {
         let worker = new Worker(URL.createObjectURL(
             new Blob([ `
-            let sum = 0;
-            while (typeof sum == 'number') sum += Math.random();
-            postMessage("done");
+            while (true) {
+                let sum = 0;
+                for (let i = 0; i < 100000; i++) {
+                    sum += Math.random();
+                }
+                postMessage(sum);
+            }
             `
             ])
         ));
         worker.addEventListener("error", function(e) {
             console.error(e);
         });
-        worker.addEventListener("message", function() {
-            console.log(e);
+        worker.addEventListener("message", function(e) {
+            bigSum += e.data;
+            document.getElementById("sum").innerText = bigSum;
+
+            let now = new Date().getTime();
+            callbacks.push(now);
+            while (callbacks[0] < now - 1000) callbacks.shift();
+            document.getElementById("persec").innerText = callbacks.length;
         });
         workers.push(worker);
     }
